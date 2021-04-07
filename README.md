@@ -10,3 +10,4 @@
 
 詳細內容
 [google文件紀錄](https://docs.google.com/document/d/150Nt8SJVClXj6IVYt7z1C8HKhNNf2HcHR0nyH8-9VPY/edit)
+[googleSheet](https://docs.google.com/spreadsheets/d/1JMwFEQqGadf_TyVQxjlYT7_dzND1pkiy02XKFyoNSUA/edit#gid=0)
