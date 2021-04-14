@@ -1,0 +1,24 @@
+{
+  "name": "study-plan",
+  "version": "1.0.0",
+  "description": "目前讀書進度與讀書計畫的進度對比：",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/as5784495/study-plan.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/as5784495/study-plan/issues"
+  },
+  "homepage": "https://github.com/as5784495/study-plan#readme",
+  "devDependencies": {
+    "@types/google-apps-script": "^1.0.30",
+    "typescript": "^4.2.3"
+  }
+}
