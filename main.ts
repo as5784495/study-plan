@@ -6,6 +6,7 @@ enum Func {
     Plan = "plan", 
     RestTimeRecod = "restTimeRecod",
     ScheduleMonitor = "scheduleMonitor",
+    UpdateData ="updateData",
 
 }
 type DoGet = GoogleAppsScript.Events.DoGet & {
@@ -24,6 +25,16 @@ type DoPost = GoogleAppsScript.Events.DoPost & {
     parameter: {
         func: Func
     }
+}
+
+type ScheduleType = {
+    className: string,
+    day: number,
+    lessionNum: number,
+    point: number,
+    professor: string,
+    scheduleId: number,
+    startTime: string,
 }
 
 function doGet(e: DoGet) {
@@ -45,22 +56,37 @@ function doGet(e: DoGet) {
     switch (func){
         case Func.Schedule:
             result = "This is Schedule."
-            multi = ss.getRange("A1:G1").getValues();
+            multi = ss.getDataRange().getValues();
             const keys =     multi[0];
-            multi = ss.getRange("A2:G11").getValues();
-            let data = multi.map(v => {
-                console.log(v[5] , v[6]);
-                return keys.reduce((pre , k , i) => {
-
-                    if(k === "endTime"){
-                        pre["lessionNum"] = Timediff(v[5], v[6]);
+            const Time_ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Time");
+            const Time_multi = Time_ss.getDataRange().getValues();
+            const Time_keys = Time_multi[0];
+            data = multi.map(v => {    
+                return keys.reduce((pre , k , i) => {  //pre每一筆資料
+                    if(k === "timeIds" && v[i] !== "timeIds"){
+                        const timeId = v[i].split(",")
+                        const timeIdLength = timeId.length;  
+                        pre["lessionNum"] = timeIdLength;
+                        let  timeData = timeId.map(Time_v => {
+                            return Time_multi.find(t => t[0] === +Time_v)
+                        })
+                        timeData = Array.from(timeData);
+                        const Obj =  timeData.map(t => {
+                            return Time_keys.reduce((Time_pre, Time_k, Time_i) => {
+                                Time_pre[Time_k] = t[Time_i];
+                                return Time_pre;
+                            },{})
+                        })
+                        
+        
+                        pre["time"] =  Obj;
+                        
                     }
-                    else{
-                    pre[k] = v[i];
-                    }
+                    else pre[k] = v[i];
+                    
                     return pre;
                 },{})
-            })
+            }).slice(1);
             console.log(JSON.stringify(data));
             break;
         case Func.Plan:
@@ -85,8 +111,6 @@ function doGet(e: DoGet) {
         default:
             console.error("沒有這個功能");
             return ContentService.createTextOutput("沒有這個功能").setMimeType(ContentService.MimeType.TEXT);
-            // throw new Error("沒有這個功能");
-            break;
     }
     return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.TEXT);
 
@@ -96,14 +120,35 @@ function doGet(e: DoGet) {
 function doPost(e: DoPost){
 
     const data = Object.assign(e, {key: "post"});
-    switch (data.postData.type) {
-        case "text/plain":
-            //TODO...
+    if(data.postData.type !== "application/json") throw new Error("不是json格式");
+
+    console.log(data);
+
+    const  {func}  = e.parameter
+    switch(func) {
+        case Func.UpdateData: { 
+            let contents = JSON.parse(e.postData.contents) as ScheduleType[];
+
+
+            const ss = SpreadsheetApp.getActiveSpreadsheet();
+            const sheet = ss.getSheetByName(`test`);
+
+
+            contents.forEach((v,i) => {
+                const table = sheet.getRange(`A${i+2}:G${i+2}`)
+                table.setValues([[v.scheduleId, v.className, v.point, v.professor, v.day, v.startTime ,getEndTime(v.startTime , v.lessionNum)]]);
+            })
+            
+            
             break;
-        case "application/json":
-            //TODO...
-            break;
+        }
+        default:
+            console.error("沒有這個功能");
+            return ContentService.createTextOutput("沒有這個功能").setMimeType(ContentService.MimeType.TEXT);
+        
     }
+    
+
     const content = JSON.parse(e.postData.contents);
 
     return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
@@ -120,5 +165,58 @@ function Timediff(t1 , t2): number{
     t3[0] = t3[0]*60;
     t4[0] = t4[0]*60;
     return Math.floor((+t4[0] + +t4[1] - +t3[0] - +t3[1])/50);
+
+}
+
+function getEndTime(t1 , lessonNum) {
+    
+
+    // let t3 = t1.split("：" , 2);
+    // let t4 = (+t3[0] + (+t3[1] + 50*lessonNum)/60) >> 0; 
+    // let t5 = (+t3[1] + 50*lessonNum)%60;
+    // return `${t4}：${t5}`; 
+
+    
+}
+
+function test(){
+    let result: string;
+    let multi: any[][];
+    let data: Object;
+    
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(`Schedule`);
+    multi = ss.getDataRange().getValues();
+    const keys =     multi[0];
+    const Time_ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Time");
+    const Time_multi = Time_ss.getDataRange().getValues();
+    const Time_keys = Time_multi[0];
+    data = multi.map(v => {    
+        return keys.reduce((pre , k , i) => {  //pre每一筆資料
+            if(k === "timeIds" && v[i] !== "timeIds"){
+                const timeId = v[i].split(",")
+                const timeIdLength = timeId.length;  
+                pre["lessionNum"] = timeIdLength;
+                let  timeData = timeId.map(Time_v => {
+                    return Time_multi.find(t => t[0] === +Time_v)
+                })
+                timeData = Array.from(timeData);
+                const Obj =  timeData.map(t => {
+                    return Time_keys.reduce((Time_pre, Time_k, Time_i) => {
+                        Time_pre[Time_k] = t[Time_i];
+                        return Time_pre;
+                    },{})
+                })
+                
+
+                pre["time"] =  Obj;
+                
+            }
+            else pre[k] = v[i];
+            
+            return pre;
+        },{})
+    }).slice(1);
+    console.log(JSON.stringify(data));
 
 }
