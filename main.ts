@@ -30,18 +30,19 @@ type DoPost = GoogleAppsScript.Events.DoPost & {
 type ScheduleType = {
     className: string,
     day: number,
-    lessionNum: number,
     point: number,
     professor: string,
     scheduleId: number,
-    startTime: string,
+    timeIds: number[],
 }
 
 function doGet(e: DoGet) {
     const  {func}  = e.parameter
     let result: string;
     let multi: any[][];
+    let scheduleData: Object;
     let data: Object;
+    
     
     for (const v in e.parameter) {
         if(v!="func")
@@ -61,25 +62,35 @@ function doGet(e: DoGet) {
             const Time_ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Time");
             const Time_multi = Time_ss.getDataRange().getValues();
             const Time_keys = Time_multi[0];
-            data = multi.map(v => {    
+            let timeData = Time_multi.map((v, i) => {
+                return Time_keys.reduce((pre, k, j) => {
+                    if(i !== 0){
+                        pre[k] = v[j]              
+                        return pre 
+                    }
+                }, {})
+            })
+            timeData.splice(0,1);
+            scheduleData = multi.map(v => {    
                 return keys.reduce((pre , k , i) => {  //pre每一筆資料
                     if(k === "timeIds" && v[i] !== "timeIds"){
-                        const timeId = v[i].split(",")
-                        const timeIdLength = timeId.length;  
-                        pre["lessionNum"] = timeIdLength;
-                        let  timeData = timeId.map(Time_v => {
-                            return Time_multi.find(t => t[0] === +Time_v)
-                        })
-                        timeData = Array.from(timeData);
-                        const Obj =  timeData.map(t => {
-                            return Time_keys.reduce((Time_pre, Time_k, Time_i) => {
-                                Time_pre[Time_k] = t[Time_i];
-                                return Time_pre;
-                            },{})
-                        })
-                        
-        
-                        pre["time"] =  Obj;
+                        const timeId = v[i].split(",").map(v => +v);
+                        pre["timeIds"] = timeId;
+
+                        // let  timeData = timeId.map(Time_v => {
+                        //     return Time_multi.find(t => t[0] === +Time_v)
+                        // })
+
+                        // timeData = Array.from(timeData);
+                        // const Obj =  timeData.map(t => {
+                        //     return Time_keys.reduce((Time_pre, Time_k, Time_i) => {
+
+                        //             Time_pre[Time_k] = t[Time_i];
+
+                        //         return Time_pre;
+                        //     },{})
+                        // })
+                        // pre["time"] =  Obj;
                         
                     }
                     else pre[k] = v[i];
@@ -87,7 +98,13 @@ function doGet(e: DoGet) {
                     return pre;
                 },{})
             }).slice(1);
-            console.log(JSON.stringify(data));
+            console.log(timeData);
+            
+            data = {
+                schedule: scheduleData,
+                time: timeData,
+            }
+            
             break;
         case Func.Plan:
             result = "This is Plan."
@@ -131,12 +148,12 @@ function doPost(e: DoPost){
 
 
             const ss = SpreadsheetApp.getActiveSpreadsheet();
-            const sheet = ss.getSheetByName(`test`);
+            const sheet = ss.getSheetByName(`Schedule`);
 
 
             contents.forEach((v,i) => {
-                const table = sheet.getRange(`A${i+2}:G${i+2}`)
-                table.setValues([[v.scheduleId, v.className, v.point, v.professor, v.day, v.startTime ,getEndTime(v.startTime , v.lessionNum)]]);
+                const table = sheet.getRange(`A${i+2}:F${i+2}`)
+                table.setValues([[v.scheduleId, v.className, v.point, v.professor, v.day, v.timeIds.join(",")]]);
             })
             
             
@@ -157,66 +174,8 @@ function doPost(e: DoPost){
 }
 
 
-function Timediff(t1 , t2): number{
-
-    let t3 = t1.split("：" , 2);
-    let t4 = t2.split("：" , 2);
-    
-    t3[0] = t3[0]*60;
-    t4[0] = t4[0]*60;
-    return Math.floor((+t4[0] + +t4[1] - +t3[0] - +t3[1])/50);
-
-}
-
-function getEndTime(t1 , lessonNum) {
-    
-
-    // let t3 = t1.split("：" , 2);
-    // let t4 = (+t3[0] + (+t3[1] + 50*lessonNum)/60) >> 0; 
-    // let t5 = (+t3[1] + 50*lessonNum)%60;
-    // return `${t4}：${t5}`; 
-
-    
-}
-
 function test(){
-    let result: string;
-    let multi: any[][];
-    let data: Object;
-    
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(`Schedule`);
-    multi = ss.getDataRange().getValues();
-    const keys =     multi[0];
-    const Time_ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Time");
-    const Time_multi = Time_ss.getDataRange().getValues();
-    const Time_keys = Time_multi[0];
-    data = multi.map(v => {    
-        return keys.reduce((pre , k , i) => {  //pre每一筆資料
-            if(k === "timeIds" && v[i] !== "timeIds"){
-                const timeId = v[i].split(",")
-                const timeIdLength = timeId.length;  
-                pre["lessionNum"] = timeIdLength;
-                let  timeData = timeId.map(Time_v => {
-                    return Time_multi.find(t => t[0] === +Time_v)
-                })
-                timeData = Array.from(timeData);
-                const Obj =  timeData.map(t => {
-                    return Time_keys.reduce((Time_pre, Time_k, Time_i) => {
-                        Time_pre[Time_k] = t[Time_i];
-                        return Time_pre;
-                    },{})
-                })
-                
 
-                pre["time"] =  Obj;
-                
-            }
-            else pre[k] = v[i];
-            
-            return pre;
-        },{})
-    }).slice(1);
-    console.log(JSON.stringify(data));
+
 
 }
